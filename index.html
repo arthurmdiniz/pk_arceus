@@ -211,6 +211,7 @@
     <input id="tokenInput" type="password" placeholder="GitHub Token" value="">
     <input id="fileInput" placeholder="tarefas.json" value="tarefas.json">
     <button onclick="salvarConfig()">Salvar Config</button>
+    <button onclick="forcarSalvamento()">Forçar Salvamento</button>
   </div>
 
   <div class="stats">
@@ -337,6 +338,19 @@ const REQUESTS = [
   { num: 107, name: "Irida's Wish", daybreak: true, objetivo: "Use Palkia Origin Forme e derrote Irida em batalha.", recompensa: "1 Exp. Candy XL e 1 Ice Stone" }
 ];
 
+function b64Encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function b64Decode(str) {
+  const bin = atob(str);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
 let tarefas = {};
 let sha = '';
 let config = { repo: '', token: '', arquivo: 'tarefas.json' };
@@ -389,7 +403,7 @@ async function carregar() {
 
     const data = await res.json();
     sha = data.sha;
-    const raw = decodeURIComponent(escape(atob(data.content)));
+    const raw = b64Decode(data.content);
     const parsed = JSON.parse(raw);
 
     tarefas = {};
@@ -414,7 +428,7 @@ async function salvar() {
 
   try {
     const dados = REQUESTS.map(r => ({ num: r.num, feito: !!tarefas[r.num] }));
-    const content = unescape(encodeURIComponent(JSON.stringify(dados, null, 2)));
+    const content = b64Encode(JSON.stringify(dados, null, 2));
     const url = `https://api.github.com/repos/${config.repo}/contents/${config.arquivo}`;
     const body = {
       message: 'atualiza requests tracker',
@@ -513,11 +527,17 @@ function renderizar() {
   document.getElementById('pctCount').textContent = total ? Math.round(done / total * 100) + '%' : '0%';
 }
 
+function forcarSalvamento() {
+  salvar();
+}
+
 function mostrarStatus(msg, tipo) {
   const el = document.getElementById('saveStatus');
   el.textContent = msg;
   el.className = 'save-status ' + (tipo || '');
-  setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4000);
+  if (tipo !== 'error') {
+    setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 6000);
+  }
 }
 
 carregarConfig();
