@@ -466,8 +466,23 @@ async function salvar() {
 function toggle(num) {
   tarefas[num] = !tarefas[num];
   localStorage.setItem('arceus_tarefas', JSON.stringify(tarefas));
-  renderizar();
+  const div = document.querySelector(`.request[data-num="${num}"]`);
+  if (div) {
+    const feito = tarefas[num];
+    div.classList.toggle('done', feito);
+    div.querySelector('.status').textContent = feito ? 'Feito' : 'Pendente';
+    div.querySelector('.status').className = 'status ' + (feito ? 'done' : 'pending');
+  }
+  atualizarStats();
   salvar();
+}
+
+function atualizarStats() {
+  let total = 0, done = 0;
+  REQUESTS.forEach(r => { total++; if (tarefas[r.num]) done++; });
+  document.getElementById('totalCount').textContent = total;
+  document.getElementById('doneCount').textContent = done;
+  document.getElementById('pctCount').textContent = total ? Math.round(done / total * 100) + '%' : '0%';
 }
 
 function renderizar() {
@@ -500,6 +515,7 @@ function renderizar() {
 
       const div = document.createElement('div');
       div.className = 'request' + (feito ? ' done' : '');
+      div.dataset.num = r.num;
       div.innerHTML = `
         <div class="row1">
           <input type="checkbox" ${feito ? 'checked' : ''} data-num="${r.num}">
@@ -531,9 +547,7 @@ function renderizar() {
   renderGroup('Requests Principais', base);
   renderGroup('Daybreak Update', daybreak);
 
-  document.getElementById('totalCount').textContent = total;
-  document.getElementById('doneCount').textContent = done;
-  document.getElementById('pctCount').textContent = total ? Math.round(done / total * 100) + '%' : '0%';
+  atualizarStats();
 }
 
 function recarregar() {
