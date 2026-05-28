@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon Legends: Arceus - Requests Tracker</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container { max-width: 800px; margin: 0 auto; }
+  h1 {
+    text-align: center;
+    font-size: 1.5rem;
+    padding: 20px;
+    background: linear-gradient(135deg, #16213e, #0f3460);
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border: 1px solid #533483;
+    color: #e94560;
+  }
+  h1 small { display: block; font-size: 0.8rem; color: #aaa; margin-top: 4px; font-weight: normal; }
+  .stats {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: #16213e;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid #533483;
+    text-align: center;
+    flex: 1;
+    min-width: 100px;
+  }
+  .stat .num { font-size: 1.5rem; font-weight: bold; color: #e94560; }
+  .stat .label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; }
+  .search-box {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #533483;
+    background: #16213e;
+    color: #e0e0e0;
+    font-size: 1rem;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  .search-box:focus { border-color: #e94560; }
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #e94560;
+    padding: 12px 0 8px;
+    border-bottom: 1px solid #533483;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+  .request {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #16213e;
+    margin-bottom: 4px;
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+  .request:hover { background: #1a2744; }
+  .request.done { opacity: 0.6; }
+  .request.done .name { text-decoration: line-through; }
+  .request .row1 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .request input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #e94560;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .request .num {
+    color: #e94560;
+    font-weight: bold;
+    font-size: 0.85rem;
+    min-width: 32px;
+  }
+  .request .name { flex: 1; font-size: 0.9rem; }
+  .request .status {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .request .status.done { background: #1b5e20; color: #a5d6a7; }
+  .request .status.pending { background: #4a148c; color: #ce93d8; }
+  .request .detalhes {
+    font-size: 0.8rem;
+    color: #aaa;
+    padding: 4px 0 2px 32px;
+    line-height: 1.4;
+    display: none;
+  }
+  .request .detalhes .recompensa {
+    color: #f0c040;
+    margin-top: 2px;
+  }
+  .request.expandido .detalhes { display: block; }
+  .toggle-detalhes {
+    font-size: 0.7rem;
+    color: #888;
+    cursor: pointer;
+    padding: 0 4px;
+    user-select: none;
+  }
+  .toggle-detalhes:hover { color: #e94560; }
+  .config-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .config-bar input {
+    flex: 1;
+    min-width: 120px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #533483;
+    background: #16213e;
+    color: #e0e0e0;
+    font-size: 0.85rem;
+    outline: none;
+  }
+  .config-bar input:focus { border-color: #e94560; }
+  .config-bar button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    background: #e94560;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  .config-bar button:hover { background: #d63851; }
+  .save-status {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-top: 16px;
+    padding: 8px;
+  }
+  .save-status.error { color: #ef5350; }
+  .save-status.success { color: #66bb6a; }
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: #aaa;
+  }
+  .hidden { display: none; }
+  @media (max-width: 640px) {
+    body { padding: 8px; }
+    h1 { font-size: 1.1rem; padding: 12px 10px; margin-bottom: 12px; }
+    h1 small { font-size: 0.7rem; }
+    .stats { gap: 6px; }
+    .stat { padding: 6px 8px; min-width: 60px; }
+    .stat .num { font-size: 1.1rem; }
+    .stat .label { font-size: 0.6rem; }
+    .search-box { padding: 10px 12px; font-size: 0.9rem; }
+    .config-bar { flex-direction: column; gap: 6px; }
+    .config-bar input { min-width: 0; width: 100%; font-size: 0.8rem; padding: 10px; }
+    .config-bar button { width: 100%; font-size: 0.85rem; padding: 10px; }
+    .request { padding: 6px 8px; }
+    .request .row1 { gap: 6px; }
+    .request .num { font-size: 0.75rem; min-width: 24px; }
+    .request .name { font-size: 0.8rem; }
+    .request input[type="checkbox"] { width: 18px; height: 18px; min-width: 18px; }
+    .request .status { font-size: 0.65rem; padding: 1px 5px; white-space: nowrap; }
+    .request .detalhes { font-size: 0.75rem; padding: 4px 0 2px 24px; }
+    .toggle-detalhes { font-size: 0.6rem; }
+    .section-title { font-size: 0.95rem; }
+  }
+  @media (max-width: 400px) {
+    .request .row1 { flex-wrap: wrap; gap: 4px; }
+    .request .name { flex: 1 1 100%; order: 3; }
+    .request .status { order: 4; }
+    .request .toggle-detalhes { order: 5; margin-left: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>
+    Pokémon Legends: Arceus
+    <small>Requests Tracker</small>
+  </h1>
+
+  <div class="config-bar">
+    <input id="repoInput" placeholder="seuuser/seurepo" value="">
+    <input id="tokenInput" type="password" placeholder="GitHub Token" value="">
+    <input id="fileInput" placeholder="tarefas.json" value="tarefas.json">
+    <button onclick="salvarConfig()">Salvar Config</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="num" id="totalCount">0</div><div class="label">Total</div></div>
+    <div class="stat"><div class="num" id="doneCount">0</div><div class="label">Feitos</div></div>
+    <div class="stat"><div class="num" id="pctCount">0%</div><div class="label">Progresso</div></div>
+  </div>
+
+  <input class="search-box" id="searchInput" placeholder="Buscar request..." oninput="renderizar()">
+
+  <div id="loading" class="loading">Carregando...</div>
+  <div id="lista"></div>
+  <div id="saveStatus" class="save-status"></div>
+</div>
+
+<script>
+const REQUESTS = [
+  { num: 1, name: "Wurmple Can Evolve", objetivo: "Capture um Wurmple no Obsidian Fieldlands e entregue ao guarda Beauregard na saída do vilarejo.", recompensa: "3 Dazzling Honey" },
+  { num: 2, name: "Adorable Starly", objetivo: "Alcance o nível 10 de pesquisa do Starly na Pokédex e mostre-a para Marli na General Store.", recompensa: "10 Poké Balls" },
+  { num: 3, name: "What Did Shinx's Ears Look Like?", objetivo: "Mostre um Shinx para Toshi no Photo Studio, perto da saída do vilarejo.", recompensa: "3 Potions" },
+  { num: 4, name: "Big Buizel, Little Buizel", objetivo: "Capture um Buizel de tamanho grande (2'8\" ou maior) e entregue ao guarda Dorian no Seaside Gate.", recompensa: "5 Oran Berry e 1 Exp. Candy S" },
+  { num: 5, name: "What It Takes to Be Awesome", objetivo: "Dê 5 Poké Balls para o garotinho Sho no fim da Floaro Main Street.", recompensa: "3 Grit Dust" },
+  { num: 6, name: "Mushroom Cake Marketing", objetivo: "Mostre um Springy Mushroom (encontrado no chão ou em batalhas contra Paras) para Morel.", recompensa: "5 Cake-Lure Base e receita Mushroom Cake" },
+  { num: 7, name: "Playing with Drifloon", objetivo: "Fale com Miki no Seaside Gate, durma até o pôr do sol, vá até a Prelude Beach e ajude a criança com o Drifloon.", recompensa: "1 Stardust" },
+  { num: 8, name: "Bothersome Bidoof", objetivo: "Coloque um Bidoof na equipe e encontre os 3 Bidoofs encrenqueiros escondidos pelo vilarejo.", recompensa: "1 Rare Candy" },
+  { num: 9, name: "Zubat's Eyes", objetivo: "Capture um Zubat e mostre-o para Clarissa perto das plantações (Farm).", recompensa: "2 Aux Power" },
+  { num: 10, name: "Wurmple's Evolved!", objetivo: "Após completar a Request 1, mostre um Silcoon para Beauregard.", recompensa: "1 Exp. Candy S" },
+  { num: 11, name: "The Timbre of the Fields", objetivo: "Alcance o nível 10 de pesquisa do Kricketot na Pokédex e mostre para Yeo.", recompensa: "3 Vivichoke" },
+  { num: 12, name: "A Perfect Pickling Stone", objetivo: "Capture um Geodude e entregue para Radisa no 2º andar do Galaxy Hall.", recompensa: "3 Honey Cake e 1 Exp. Candy S" },
+  { num: 13, name: "Trees That Bear Berries", objetivo: "Consiga 3 Cheri Berries e entregue para Bjorn no Deertrack Path.", recompensa: "15 Poké Balls" },
+  { num: 14, name: "Berry Helpful", objetivo: "Consiga 5 Oran Berries e entregue para Andra perto da saída do vilarejo (Front Gate).", recompensa: "3 Revive" },
+  { num: 15, name: "Balloon Race in the Fieldlands", objetivo: "Complete a corrida de balões montado no Wyrdeer no Heights Camp, estourando pelo menos 17 balões em 45 segundos.", recompensa: "1 Rare Candy e 15 Feather Balls" },
+  { num: 16, name: "Strange Happenings at Midnight", objetivo: "Durante a noite, vá até a Canala Avenue e investigue o alojamento de Sanqua para encontrar um Pichu.", recompensa: "7 Nanab Berry" },
+  { num: 17, name: "To Bloom or Not to Bloom", objetivo: "Alcance o nível 10 de pesquisa do Cherrim na Pokédex e mostre para Kichi na Farm.", recompensa: "5 Vivichoke" },
+  { num: 18, name: "Please! Make Me a Pokeshi Doll!", objetivo: "Confeccione uma Pokéshi Doll (com 3 Woods) na bancada e mostre para Anvin no Craftworks.", recompensa: "1 Pokéshi Doll" },
+  { num: 19, name: "A Peculiar Ponyta", objetivo: "Capture a Ponyta shiny especial no Horseshoe Plains e mostre para Yota.", recompensa: "5 Razz Berries" },
+  { num: 20, name: "The Mysterious Will-o'-the-Wisp", objetivo: "Capture um Chimchar no Windswept Run durante a noite e mostre para Paira.", recompensa: "2 Exp. Candy S" },
+  { num: 21, name: "Back-Alley Mr. Mime", objetivo: "Persiga o Mr. Mime pelo vilarejo, passando por labirintos invisíveis, até que Ress reivindique o pokémon.", recompensa: "2 Aux Guard" },
+  { num: 22, name: "Eerie Apparitions in the Night", objetivo: "Colete as 107 chamas de fogo-fátuo (Wispy flames) espalhadas por Hisui para enfrentar Spiritomb.", recompensa: "Recompensas progressivas + 3 Twice-Spiced Radish" },
+  { num: 23, name: "Getting Ahold of New Wares", objetivo: "Consiga 3 Heart Grains (encontrados no Crimson Mirelands) e entregue para Tao Hua.", recompensa: "Novos itens na General Store" },
+  { num: 24, name: "Inspiration from Hippopotas", objetivo: "Capture um Hippopotas macho e um fêmea no Crimson Mirelands e mostre-os para Anthe.", recompensa: "Novas roupas na loja da Anthe" },
+  { num: 25, name: "The Pokemon in the Woodland Photo", objetivo: "Mostre um Buneary para Dagero no Photo Studio.", recompensa: "Novas opções de fotos no Photo Studio" },
+  { num: 26, name: "Aim for the Big Leagues!", objetivo: "Marque pelo menos 10.000 pontos no joguinho de estourar balões no Practice Field em 1 minuto.", recompensa: "15 Great Balls e 1 Nugget" },
+  { num: 27, name: "Help Wanted: Plowing the Fields", objetivo: "Empreste um pokémon do tipo Ground para Miller na Farm para arar a terra.", recompensa: "Novos cultivos na Farm" },
+  { num: 28, name: "Measuring Your Compatibility", objetivo: "Mostre um pokémon com alta felicidade para Belamy perto dos Pastures.", recompensa: "1 Rare Candy e Friendship Checker" },
+  { num: 29, name: "The Search for Bitter Leaves", objetivo: "Capture uma Petilil no Crimson Mirelands e entregue para Anise.", recompensa: "3 Fine Remedy e 5 Hopo Berry" },
+  { num: 30, name: "A Beautiful Rose...", objetivo: "Alcance o nível 10 de pesquisa do Roselia na Pokédex e mostre para Berra.", recompensa: "5 Grain Cake e 2 Exp. Candy S" },
+  { num: 31, name: "Setting Up the Bogbound Camp", objetivo: "Derrote ou capture 3 Stunky para ajudar Odo a construir o Bogbound Camp no Crimson Mirelands.", recompensa: "Novo acampamento (Bogbound Camp)" },
+  { num: 32, name: "The Headache-Stricken Psyduck", objetivo: "Pegue o Secret Medicine com Tomma no Galaxy Hall e entregue para Martia no Diamond Settlement.", recompensa: "1 Max Revive" },
+  { num: 33, name: "What a Massive Mushroom!", objetivo: "Capture um Parasect e entregue para Morel.", recompensa: "5 Candy Truffle" },
+  { num: 34, name: "Croagunk's Curative Poison", objetivo: "Capture um Croagunk e entregue para Pesselle na ala do Medical Corps.", recompensa: "3 Full Heal e 3 Exp. Candy S" },
+  { num: 35, name: "Battling with Pachirisu", objetivo: "Derrote o Ursaring (lv.30) de Ren usando apenas um Pachirisu em batalha.", recompensa: "3 Sitrus Berry e 1 Grit Gravel" },
+  { num: 36, name: "Watering with Care", objetivo: "Mostre um pokémon com o golpe Water Pulse para Odo e depois batalhe contra o Sudowoodo.", recompensa: "15 Heavy Ball e 3 Exp. Candy S" },
+  { num: 37, name: "The Fragrance of Nostalgic Herbs", objetivo: "Mostre um Tangela ou Tangrowth para Risa.", recompensa: "5 Smoke Bomb e 2 Exp. Candy S" },
+  { num: 38, name: "Gone Astray...in the Mirelands", objetivo: "Use o Ursaluna para encontrar Wanda perdida no Gapejaw Bog do Crimson Mirelands.", recompensa: "3 Stardust" },
+  { num: 39, name: "All About Magikarp", objetivo: "Alcance o nível 10 de pesquisa do Magikarp na Pokédex e mostre para Ceci.", recompensa: "1 Rare Candy" },
+  { num: 40, name: "The Charm Lost in the Swamp", objetivo: "Encontre o amuleto de Yojiro no Sludge Mound e derrote o Alpha Hippowdon (lv.34).", recompensa: "5 Iron Chunk e 1 Grit Gravel" },
+  { num: 41, name: "An Elegant Tail", objetivo: "Capture um Glameow no Cobalt Coastlands e mostre para Asabei.", recompensa: "2 Aux Evasion e 2 Grit Gravel" },
+  { num: 42, name: "Help Wanted: Watering the Fields", objetivo: "Empreste um pokémon com golpe do tipo Water para Miller na Farm.", recompensa: "Novos cultivos (berries) na Farm" },
+  { num: 43, name: "More New Wares", objetivo: "Consiga 3 Pop Pods (encontrados no Cobalt Coastlands) e entregue para Tao Hua.", recompensa: "Novos itens na General Store" },
+  { num: 44, name: "The Pokemon in the Nighttime Photo", objetivo: "Capture um Duskull no Cobalt Coastlands e mostre para Dagero no Photo Studio.", recompensa: "Novas opções de fotos" },
+  { num: 45, name: "Shellos of the East and West", objetivo: "Capture um Shellos do Leste (Cobalt Coastlands) e um do Oeste (Lake Verity) e mostre para Anthe.", recompensa: "Novas roupas na loja da Anthe" },
+  { num: 46, name: "Setting Up the Coastlands Camp", objetivo: "Ajude Gully a encontrar Yorrich e capture/derrote o Chatot.", recompensa: "Novo acampamento (Coastlands Camp)" },
+  { num: 47, name: "Balloon Race in the Coastlands", objetivo: "Corrida de balões no Coastlands Camp alternando Wyrdeer e Basculegion, estourando 24 balões em 1min20s.", recompensa: "1 Nugget e 10 Ultra Balls" },
+  { num: 48, name: "The Taste of Home", objetivo: "Entregue 3 Hearty Grains, 2 Hopo Berries e 1 Razz Berry para Floaro.", recompensa: "5 Exp. Candy S e receita Jubilife Muffin" },
+  { num: 49, name: "Keep an Eye Out for Aipom!", objetivo: "Persiga e derrote dois Aipom que roubaram os pertences de Hiko no Cobalt Coastlands.", recompensa: "5 Scatter Bang e 1 Exp. Candy M" },
+  { num: 50, name: "Double the Tails, Double the Fun", objetivo: "Capture um Finneon no Seagrass Haven e mostre para Netta.", recompensa: "1 Star Piece" },
+  { num: 51, name: "Coming Up Roses", objetivo: "Mostre um Scyther capturado perto da Grandtree Arena para Hiemo.", recompensa: "1 Seed of Mastery" },
+  { num: 52, name: "Eevee's Evolutions", objetivo: "Encontre o Umbreon no Galaxy Hall, dê a ele um Jubilife Muffin.", recompensa: "1 Rare Candy e pedra evolutiva à escolha" },
+  { num: 53, name: "Octillery's Ink", objetivo: "Alcance o nível 10 de pesquisa do Octillery na Pokédex e mostre para Radisa.", recompensa: "5 Bean Cake e 1 Exp. Candy M" },
+  { num: 54, name: "Serving Up Swap Snacks", objetivo: "Entregue 1 Sootfoot Root, 1 Springy Mushroom e 1 Hopo Berry para Bonn.", recompensa: "Receita do Swap Snack" },
+  { num: 55, name: "Poor, Peckish Piplup", objetivo: "Confeccione um Bean Cake e dê para o Piplup faminto no Tombolo Walk.", recompensa: "5 Razz Berry e 3 Hyper Potion" },
+  { num: 56, name: "Getting Help From Machoke", objetivo: "Alcance o nível 10 de pesquisa do Machoke na Pokédex e mostre para Bosley.", recompensa: "3 Grit Gravel e 1 Aux Powerguard" },
+  { num: 57, name: "The Taste of Honey", objetivo: "Mostre um Combee de 3 áreas diferentes para Almous.", recompensa: "3 King's Leaf e 3 Dazzling Honey" },
+  { num: 58, name: "Gone Astray...in the Coastlands", objetivo: "Use Ursaluna para encontrar Wanda na área Castaway Shore.", recompensa: "1 Star Piece" },
+  { num: 59, name: "Misdreavus the Hairstyle Muse", objetivo: "Capture um Misdreavus no Coronet Highlands e mostre para Arezu.", recompensa: "Novos penteados no cabeleireiro" },
+  { num: 60, name: "Help Wanted: Rock Smashing in the Fields", objetivo: "Empreste um pokémon com Rock Smash para Miller.", recompensa: "Novos cultivos (Mints) na Farm" },
+  { num: 61, name: "Even More New Wares", objetivo: "Consiga 3 Crunchy Salts (encontrados no Coronet Highlands) e entregue para Tao Hua.", recompensa: "Novos itens na General Store" },
+  { num: 62, name: "The Pokemon in the River Photo", objetivo: "Capture um Turtwig no Crimson Mirelands e mostre para Dagero.", recompensa: "Novas opções de fotos" },
+  { num: 63, name: "Fancy, Fashionable Wormadam", objetivo: "Mostre qualquer forma de Wormadam para Anthe.", recompensa: "Novas roupas na loja da Anthe" },
+  { num: 64, name: "Getting to Know Ghosts", objetivo: "Alcance o nível 10 de pesquisa do Gastly na Pokédex e mostre para Ward.", recompensa: "1 Linking Cord" },
+  { num: 65, name: "Setting Up the Mountain Camp", objetivo: "Ajude Eshim com o Bronzor para construir o Mountain Camp no Coronet Highlands.", recompensa: "Novo acampamento (Mountain Camp)" },
+  { num: 66, name: "The Sea's Legend", objetivo: "Leve Mantyke, Buizel e Overqwil, vá ao Seaside Hollow e capture Manaphy e Phione.", recompensa: "3 Comet Shard" },
+  { num: 67, name: "The Clefairy's Moonlit Dance", objetivo: "Vá ao Fabled Spring durante a lua cheia e observe os Clefairy dançarem.", recompensa: "5 Salt Cake e 2 Exp. Candy M" },
+  { num: 68, name: "A Nosepass to Guide the Way", objetivo: "Capture um Nosepass e entregue para Gully dentro da Wayward Cave.", recompensa: "1 Black Augurite e 2 Exp. Candy M" },
+  { num: 69, name: "Gone Astray...in the Highlands", objetivo: "Use Ursaluna para encontrar Wanda perdida perto do Mountain Camp.", recompensa: "2 Star Piece" },
+  { num: 70, name: "Colorful New Looks", objetivo: "Entregue 1 Red Shard, 1 Blue Shard e 1 Green Shard para Anthe.", recompensa: "Novas roupas na loja da Anthe" },
+  { num: 71, name: "New Wares Yet Again", objetivo: "Consiga 3 Sand Radishes (encontrados no Alabaster Icelands) e entregue para Tao Hua.", recompensa: "General Store completamente abastecida" },
+  { num: 72, name: "Pesselle's Easy Errand", objetivo: "Entregue 100 Medicinal Leeks para Pesselle.", recompensa: "1 Adamant Mint e 1 Modest Mint" },
+  { num: 73, name: "Which Is the Real Burmy?", objetivo: "Capture as três formas de Burmy (Plant, Sandy e Trash) e mostre para Leif.", recompensa: "1 Leaf Stone e 3 Exp. Candy M" },
+  { num: 74, name: "A Bit of Help from Blissey", objetivo: "Ajude Pippa a encontrar a Blissey no Avalugg's Legacy e derrote o Abomasnow (lv.55).", recompensa: "1 Shiny Stone e 2 Max Revive" },
+  { num: 75, name: "Kirlia the Hairstyle Muse", objetivo: "Capture um Kirlia e mostre para Arezu no cabeleireiro.", recompensa: "Novos penteados no cabeleireiro" },
+  { num: 76, name: "Mushroom Hunting with Swinub", objetivo: "Coloque um Swinub na equipe e encontre 3 cogumelos no Heart's Crag para Morel.", recompensa: "5 Sand Radish e 1 Exp. Candy L" },
+  { num: 77, name: "Gone Astray...in the Fieldlands", objetivo: "Use Ursaluna para encontrar Wanda no Obsidian Fieldlands.", recompensa: "3 Star Piece" },
+  { num: 78, name: "Setting Up the Icepeak Camp", objetivo: "Ajude Brice a encontrar Craig no Alabaster Icelands.", recompensa: "Novo acampamento (Icepeak Camp)" },
+  { num: 79, name: "Balloon Race in the Icelands", objetivo: "Corrida de balões no Icepeak Camp usando todas as montarias, estourando 30 balões em 2 min.", recompensa: "3 Nugget" },
+  { num: 80, name: "The Perfect Pickle Recipe", objetivo: "Entregue 2 Crunchy Salts, 2 Plump Beans e 2 King's Leaf para Radisa.", recompensa: "Receita do Twice-Spiced Radish" },
+  { num: 81, name: "In Search of a Fiery Pokemon", objetivo: "Empreste um pokémon do tipo Fire para Brice no Icepeak Camp.", recompensa: "3 Full Restore e 1 Exp. Candy L" },
+  { num: 82, name: "Traces of a Lost Village", objetivo: "Encontre o Old Journal no Avalanche Slopes e derrote a Froslass (lv.55).", recompensa: "1 Dawn Stone" },
+  { num: 83, name: "Snow-White Vulpix in the Snow", objetivo: "Encontre 5 Alolan Vulpix perdidos no Avalanche Slopes.", recompensa: "1 Exp. Candy L e 1 Alolan Vulpix" },
+  { num: 84, name: "The Bergmite Enthusiast", objetivo: "Alcance o nível 10 de pesquisa do Bergmite na Pokédex e mostre para Dominia.", recompensa: "3 Grit Pebble" },
+  { num: 85, name: "At Home under the Eaves", objetivo: "Ajude Ida a encontrar um lar para o Chimecho no vilarejo.", recompensa: "1 Rare Candy e 1 Sun Stone" },
+  { num: 86, name: "Gone Astray...in the Icelands", objetivo: "Use Ursaluna para encontrar Zeke no Icepeak Cavern e derrote o Alpha Glalie (lv.64).", recompensa: "5 Star Piece e 1 Peat Block" },
+  { num: 87, name: "Rolling with Spheal", objetivo: "Resgate o Spheal de Senki que rolou ladeira abaixo no Bolderoll Ravine.", recompensa: "5 Sticky Glob e 1 Rare Candy" },
+  { num: 88, name: "Steely Lucario", objetivo: "Derrote Rye e seu Lucario (lv.62) em batalha no Training Grounds.", recompensa: "1 Grit Rock" },
+  { num: 89, name: "The Diamond Clan's Treasure", objetivo: "Derrote Adaman em batalha perto do Diamond Settlement.", recompensa: "3 Comet Shard (e Adamant Crystal)" },
+  { num: 90, name: "The Pearl Clan's Treasure", objetivo: "Derrote Irida em batalha perto do Pearl Settlement.", recompensa: "3 Comet Shard (e Lustrous Globe)" },
+  { num: 91, name: "On the Trail of Giratina", objetivo: "Capture Giratina (Origin Forme, lv.70) no Spring Path.", recompensa: "1 Grit Rock e Griseous Core" },
+  { num: 92, name: "A Token of Gratitude", objetivo: "Capture Shaymin (lv.70) no Floaro Gardens (requer save de Sword/Shield).", recompensa: "1 Grit Rock" },
+  { num: 93, name: "The Darksome Nightmare", objetivo: "Capture Darkrai (lv.70) no Clamberclaw Cliffs durante a noite (requer save de BD/SP).", recompensa: "1 Exp. Candy XL" },
+  { num: 94, name: "Incarnate Forces of Hisui", objetivo: "Capture Tornadus, Thundurus, Landorus e Enamorus (todos lv.70) e complete a Pokédex deles.", recompensa: "4 Exp. Candy L e Reveal Glass" },
+  { num: 95, name: "A New Anomaly", daybreak: true, objetivo: "Investigue a anomalia na Ramanas Island com Mai.", recompensa: "30 Ultra Ball, 60 Apricorn, 60 Tumblestone" },
+  { num: 96, name: "Massive Mass Outbreak in the Fieldlands", daybreak: true, objetivo: "Investigue 3 Massive Mass Outbreaks no Obsidian Fieldlands durante a chuva forte.", recompensa: "30 Tumblestone, 40 Iron Chunk, 20 Smoke Bomb" },
+  { num: 97, name: "Massive Mass Outbreak in the Mirelands", daybreak: true, objetivo: "Investigue 3 Massive Mass Outbreaks no Crimson Mirelands.", recompensa: "20 Apricorns, 30 Black Tumblestone, 30 Iron Chunk" },
+  { num: 98, name: "Massive Mass Outbreak in the Coastlands", daybreak: true, objetivo: "Investigue 3 Massive Mass Outbreaks no Cobalt Coastlands.", recompensa: "30 Tumblestone, 30 Sky Tumblestone, 30 Iron Chunk" },
+  { num: 99, name: "Tricky Treat Strategy", daybreak: true, objetivo: "Leve 10 Mushroom Cakes até o Secret Hollow no Alabaster Icelands.", recompensa: "3 Star Piece e 30 Iron Chunk" },
+  { num: 100, name: "Massive Mass Outbreak in the Highlands", daybreak: true, objetivo: "Investigue 3 Massive Mass Outbreaks no Coronet Highlands.", recompensa: "30 Apricorns, 30 Tumblestone, 20 Ball of Mud" },
+  { num: 101, name: "Massive Mass Outbreak in the Icelands", daybreak: true, objetivo: "Investigue 3 Massive Mass Outbreaks no Alabaster Icelands.", recompensa: "30 Iron Chunk, 20 Caster Fern, 20 Ball of Mud" },
+  { num: 102, name: "Daybreak", daybreak: true, objetivo: "Observe o nascer do sol com Mai, Munchlax, Irida e Adaman.", recompensa: "1 Dawn Stone, 1 Seed of Mastery, 3 Exp. Candy XL" },
+  { num: 103, name: "Digging for Tomorrow", daybreak: true, objetivo: "Derrote o Alpha Onix (lv.60) no Oreburrow Tunnel.", recompensa: "20 Iron Chunk e 1 Grit Rock" },
+  { num: 104, name: "Battling the Security Corps' Secret Weapon", daybreak: true, objetivo: "Derrote Ress em batalha no Training Grounds (lv.62).", recompensa: "3 Grit Rock" },
+  { num: 105, name: "The Ultimate Balloon Race", daybreak: true, objetivo: "Corrida final no Summit Camp com todas as montarias, estourando 40 balões em 1min50s.", recompensa: "5 Nugget" },
+  { num: 106, name: "Adaman's Hope", daybreak: true, objetivo: "Use Dialga Origin Forme e derrote Adaman em batalha.", recompensa: "1 Exp. Candy XL e 1 Leaf Stone" },
+  { num: 107, name: "Irida's Wish", daybreak: true, objetivo: "Use Palkia Origin Forme e derrote Irida em batalha.", recompensa: "1 Exp. Candy XL e 1 Ice Stone" }
+];
+
+let tarefas = {};
+let sha = '';
+let config = { repo: '', token: '', arquivo: 'tarefas.json' };
+let salvando = false;
+
+function carregarConfig() {
+  try {
+    const saved = localStorage.getItem('arceus_config');
+    if (saved) config = JSON.parse(saved);
+    document.getElementById('repoInput').value = config.repo || '';
+    document.getElementById('tokenInput').value = config.token || '';
+    document.getElementById('fileInput').value = config.arquivo || 'tarefas.json';
+  } catch {}
+}
+
+function salvarConfig() {
+  config.repo = document.getElementById('repoInput').value.trim();
+  config.token = document.getElementById('tokenInput').value.trim();
+  config.arquivo = document.getElementById('fileInput').value.trim() || 'tarefas.json';
+  localStorage.setItem('arceus_config', JSON.stringify(config));
+  mostrarStatus('Configuração salva!', 'success');
+  carregar();
+}
+
+async function carregar() {
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('lista').innerHTML = '';
+
+  if (!config.repo || !config.token) {
+    document.getElementById('loading').classList.add('hidden');
+    renderizar();
+    return;
+  }
+
+  try {
+    const url = `https://api.github.com/repos/${config.repo}/contents/${config.arquivo}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `token ${config.token}` }
+    });
+
+    if (res.status === 404) {
+      tarefas = {};
+      sha = '';
+      document.getElementById('loading').classList.add('hidden');
+      renderizar();
+      return;
+    }
+
+    if (!res.ok) throw new Error(`Erro ${res.status}: ${await res.text()}`);
+
+    const data = await res.json();
+    sha = data.sha;
+    const raw = decodeURIComponent(escape(atob(data.content)));
+    const parsed = JSON.parse(raw);
+
+    tarefas = {};
+    if (Array.isArray(parsed)) {
+      parsed.forEach(r => { tarefas[r.num] = r.feito; });
+    } else {
+      tarefas = parsed;
+    }
+
+    document.getElementById('loading').classList.add('hidden');
+    renderizar();
+  } catch (err) {
+    document.getElementById('loading').classList.add('hidden');
+    mostrarStatus('Erro ao carregar: ' + err.message, 'error');
+    renderizar();
+  }
+}
+
+async function salvar() {
+  if (salvando || !config.repo || !config.token) return;
+  salvando = true;
+
+  try {
+    const dados = REQUESTS.map(r => ({ num: r.num, feito: !!tarefas[r.num] }));
+    const content = unescape(encodeURIComponent(JSON.stringify(dados, null, 2)));
+    const url = `https://api.github.com/repos/${config.repo}/contents/${config.arquivo}`;
+    const body = {
+      message: 'atualiza requests tracker',
+      content: btoa(content),
+      branch: 'main'
+    };
+    if (sha) body.sha = sha;
+
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { Authorization: `token ${config.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) throw new Error(`Erro ${res.status}: ${await res.text()}`);
+
+    const data = await res.json();
+    sha = data.content.sha;
+    mostrarStatus('Salvo com sucesso!', 'success');
+  } catch (err) {
+    mostrarStatus('Erro ao salvar: ' + err.message, 'error');
+  } finally {
+    salvando = false;
+  }
+}
+
+function toggle(num) {
+  tarefas[num] = !tarefas[num];
+  renderizar();
+  salvar();
+}
+
+function renderizar() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const lista = document.getElementById('lista');
+  lista.innerHTML = '';
+
+  const base = REQUESTS.filter(r => !r.daybreak);
+  const daybreak = REQUESTS.filter(r => r.daybreak);
+
+  let total = 0, done = 0;
+
+  function renderGroup(title, items) {
+    const filtered = items.filter(r =>
+      r.name.toLowerCase().includes(search) ||
+      String(r.num).includes(search) ||
+      (r.objetivo && r.objetivo.toLowerCase().includes(search))
+    );
+    if (filtered.length === 0) return;
+
+    const section = document.createElement('div');
+    section.className = 'section-title';
+    section.textContent = title;
+    lista.appendChild(section);
+
+    filtered.forEach(r => {
+      const feito = !!tarefas[r.num];
+      if (feito) done++;
+      total++;
+
+      const div = document.createElement('div');
+      div.className = 'request' + (feito ? ' done' : '');
+      div.innerHTML = `
+        <div class="row1">
+          <input type="checkbox" ${feito ? 'checked' : ''} data-num="${r.num}">
+          <span class="num">#${r.num}</span>
+          <span class="name">${r.name}</span>
+          <span class="status ${feito ? 'done' : 'pending'}">${feito ? 'Feito' : 'Pendente'}</span>
+          <span class="toggle-detalhes">▼</span>
+        </div>
+        <div class="detalhes">
+          ${r.objetivo ? r.objetivo : ''}
+          <div class="recompensa">${r.recompensa ? '\u{1F4B0} ' + r.recompensa : ''}</div>
+        </div>
+      `;
+      div.querySelector('input').addEventListener('change', () => toggle(r.num));
+      div.querySelector('.toggle-detalhes').addEventListener('click', (e) => {
+        e.stopPropagation();
+        div.classList.toggle('expandido');
+        e.target.textContent = div.classList.contains('expandido') ? '\u25B2' : '\u25BC';
+      });
+      div.querySelector('.row1').addEventListener('click', (e) => {
+        if (e.target.tagName !== 'INPUT') {
+          div.querySelector('input').click();
+        }
+      });
+      lista.appendChild(div);
+    });
+  }
+
+  renderGroup('Requests Principais', base);
+  renderGroup('Daybreak Update', daybreak);
+
+  document.getElementById('totalCount').textContent = total;
+  document.getElementById('doneCount').textContent = done;
+  document.getElementById('pctCount').textContent = total ? Math.round(done / total * 100) + '%' : '0%';
+}
+
+function mostrarStatus(msg, tipo) {
+  const el = document.getElementById('saveStatus');
+  el.textContent = msg;
+  el.className = 'save-status ' + (tipo || '');
+  setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4000);
+}
+
+carregarConfig();
+carregar();
+</script>
+</body>
+</html>
