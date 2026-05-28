@@ -206,13 +206,8 @@
     <small>Requests Tracker</small>
   </h1>
 
-  <div class="config-bar">
-    <input id="repoInput" placeholder="seuuser/seurepo" value="">
-    <input id="tokenInput" type="password" placeholder="GitHub Token" value="">
-    <input id="fileInput" placeholder="tarefas.json" value="tarefas.json">
-    <button onclick="salvarConfig()">Salvar Config</button>
-    <button onclick="forcarSalvamento()">Forçar Salvamento</button>
-    <button onclick="recarregar()">Recarregar do GitHub</button>
+  <div style="text-align:center;font-size:.8rem;color:#888;margin-bottom:16px;">
+    Sincronizado com Supabase — alterações salvas automaticamente
   </div>
 
   <div class="stats">
@@ -228,7 +223,12 @@
   <div id="saveStatus" class="save-status"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL = 'https://avwqsjifahdilgszkora.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2d3FzamlmYWhkaWxnc3prb3JhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5OTkyMTYsImV4cCI6MjA5NTU3NTIxNn0.WUVFB4FfDOCPC_vAY3H7lip7fJCZtSjkgUdLAvnsQTk';
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const REQUESTS = [
   { num: 1, name: "Wurmple Can Evolve", objetivo: "Capture um Wurmple no Obsidian Fieldlands e entregue ao guarda Beauregard na saída do vilarejo.", recompensa: "3 Dazzling Honey" },
   { num: 2, name: "Adorable Starly", objetivo: "Alcance o nível 10 de pesquisa do Starly na Pokédex e mostre-a para Marli na General Store.", recompensa: "10 Poké Balls" },
@@ -339,123 +339,53 @@ const REQUESTS = [
   { num: 107, name: "Irida's Wish", daybreak: true, objetivo: "Use Palkia Origin Forme e derrote Irida em batalha.", recompensa: "1 Exp. Candy XL e 1 Ice Stone" }
 ];
 
-function b64Encode(str) {
-  const bytes = new TextEncoder().encode(str);
-  let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-function b64Decode(str) {
-  const bin = atob(str);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
-}
-
 let tarefas = {};
-let sha = '';
-let config = { repo: '', token: '', arquivo: 'tarefas.json' };
 let salvando = false;
-
-function carregarConfig() {
-  try {
-    const saved = localStorage.getItem('arceus_config');
-    if (saved) config = JSON.parse(saved);
-    document.getElementById('repoInput').value = config.repo || '';
-    document.getElementById('tokenInput').value = config.token || '';
-    document.getElementById('fileInput').value = config.arquivo || 'tarefas.json';
-  } catch {}
-}
-
-function salvarConfig() {
-  config.repo = document.getElementById('repoInput').value.trim();
-  config.token = document.getElementById('tokenInput').value.trim();
-  config.arquivo = document.getElementById('fileInput').value.trim() || 'tarefas.json';
-  localStorage.setItem('arceus_config', JSON.stringify(config));
-  mostrarStatus('Configuração salva!', 'success');
-  carregar();
-}
 
 async function carregar() {
   document.getElementById('loading').classList.remove('hidden');
   document.getElementById('lista').innerHTML = '';
 
-  if (!config.repo || !config.token) {
+  try {
+    const { data, error } = await _supabase
+      .from('requests')
+      .select('num, feito');
+
+    if (error) throw error;
+
+    tarefas = {};
+    data.forEach(r => { tarefas[r.num] = r.feito; });
+    localStorage.setItem('arceus_tarefas', JSON.stringify(tarefas));
+
+    document.getElementById('loading').classList.add('hidden');
+    renderizar();
+    mostrarStatus('Dados carregados do Supabase!', 'success');
+  } catch (err) {
     try { tarefas = JSON.parse(localStorage.getItem('arceus_tarefas') || '{}'); } catch {}
     document.getElementById('loading').classList.add('hidden');
     renderizar();
-    return;
-  }
-
-  try {
-    const url = `https://api.github.com/repos/${config.repo}/contents/${config.arquivo}`;
-    const res = await fetch(url, {
-      headers: { Authorization: `token ${config.token}` }
-    });
-
-    if (res.status === 404) {
-      console.log('tarefas.json nao encontrado, criando vazio');
-      tarefas = {};
-      sha = '';
-      localStorage.setItem('arceus_tarefas', '{}');
-      document.getElementById('loading').classList.add('hidden');
-      renderizar();
-      return;
-    }
-
-    if (!res.ok) throw new Error(`Erro ${res.status}: ${await res.text()}`);
-
-    const data = await res.json();
-    console.log('SHA do arquivo:', data.sha);
-    sha = data.sha;
-    const raw = b64Decode(data.content);
-    console.log('Conteudo bruto:', raw.substring(0, 100));
-    const parsed = JSON.parse(raw);
-
-    tarefas = {};
-    if (Array.isArray(parsed)) {
-      parsed.forEach(r => { tarefas[r.num] = r.feito; });
-    } else {
-      tarefas = parsed;
-    }
-
-    localStorage.setItem('arceus_tarefas', JSON.stringify(tarefas));
-    document.getElementById('loading').classList.add('hidden');
-    renderizar();
-  } catch (err) {
-    document.getElementById('loading').classList.add('hidden');
     mostrarStatus('Erro ao carregar: ' + err.message, 'error');
-    renderizar();
   }
 }
 
 async function salvar() {
-  if (salvando || !config.repo || !config.token) return;
+  if (salvando) return;
   salvando = true;
 
   try {
-    const dados = REQUESTS.map(r => ({ num: r.num, feito: !!tarefas[r.num] }));
-    const content = b64Encode(JSON.stringify(dados, null, 2));
-    const url = `https://api.github.com/repos/${config.repo}/contents/${config.arquivo}`;
-    const body = {
-      message: 'atualiza requests tracker',
-      content: btoa(content),
-      branch: 'main'
-    };
-    if (sha) body.sha = sha;
+    const upserts = Object.entries(tarefas).map(([num, feito]) => ({
+      num: parseInt(num),
+      feito
+    }));
 
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: { Authorization: `token ${config.token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    const { error } = await _supabase
+      .from('requests')
+      .upsert(upserts, { onConflict: 'num' });
 
-    if (!res.ok) throw new Error(`Erro ${res.status}: ${await res.text()}`);
+    if (error) throw error;
 
-    const data = await res.json();
-    sha = data.content.sha;
     localStorage.setItem('arceus_tarefas', JSON.stringify(tarefas));
-    mostrarStatus('Salvo com sucesso!', 'success');
+    mostrarStatus('Salvo no Supabase!', 'success');
   } catch (err) {
     mostrarStatus('Erro ao salvar: ' + err.message, 'error');
   } finally {
@@ -493,8 +423,6 @@ function renderizar() {
   const base = REQUESTS.filter(r => !r.daybreak);
   const daybreak = REQUESTS.filter(r => r.daybreak);
 
-  let total = 0, done = 0;
-
   function renderGroup(title, items) {
     const filtered = items.filter(r =>
       r.name.toLowerCase().includes(search) ||
@@ -510,9 +438,6 @@ function renderizar() {
 
     filtered.forEach(r => {
       const feito = !!tarefas[r.num];
-      if (feito) done++;
-      total++;
-
       const div = document.createElement('div');
       div.className = 'request' + (feito ? ' done' : '');
       div.dataset.num = r.num;
@@ -546,15 +471,7 @@ function renderizar() {
 
   renderGroup('Requests Principais', base);
   renderGroup('Daybreak Update', daybreak);
-
   atualizarStats();
-}
-
-function recarregar() {
-  carregar();
-}
-function forcarSalvamento() {
-  salvar();
 }
 
 function mostrarStatus(msg, tipo) {
@@ -562,11 +479,10 @@ function mostrarStatus(msg, tipo) {
   el.textContent = msg;
   el.className = 'save-status ' + (tipo || '');
   if (tipo !== 'error') {
-    setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 6000);
+    setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4000);
   }
 }
 
-carregarConfig();
 carregar();
 </script>
 </body>
