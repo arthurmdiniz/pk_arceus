@@ -212,6 +212,7 @@
     <input id="fileInput" placeholder="tarefas.json" value="tarefas.json">
     <button onclick="salvarConfig()">Salvar Config</button>
     <button onclick="forcarSalvamento()">Forçar Salvamento</button>
+    <button onclick="recarregar()">Recarregar do GitHub</button>
   </div>
 
   <div class="stats">
@@ -380,6 +381,7 @@ async function carregar() {
   document.getElementById('lista').innerHTML = '';
 
   if (!config.repo || !config.token) {
+    try { tarefas = JSON.parse(localStorage.getItem('arceus_tarefas') || '{}'); } catch {}
     document.getElementById('loading').classList.add('hidden');
     renderizar();
     return;
@@ -392,8 +394,10 @@ async function carregar() {
     });
 
     if (res.status === 404) {
+      console.log('tarefas.json nao encontrado, criando vazio');
       tarefas = {};
       sha = '';
+      localStorage.setItem('arceus_tarefas', '{}');
       document.getElementById('loading').classList.add('hidden');
       renderizar();
       return;
@@ -402,8 +406,10 @@ async function carregar() {
     if (!res.ok) throw new Error(`Erro ${res.status}: ${await res.text()}`);
 
     const data = await res.json();
+    console.log('SHA do arquivo:', data.sha);
     sha = data.sha;
     const raw = b64Decode(data.content);
+    console.log('Conteudo bruto:', raw.substring(0, 100));
     const parsed = JSON.parse(raw);
 
     tarefas = {};
@@ -413,6 +419,7 @@ async function carregar() {
       tarefas = parsed;
     }
 
+    localStorage.setItem('arceus_tarefas', JSON.stringify(tarefas));
     document.getElementById('loading').classList.add('hidden');
     renderizar();
   } catch (err) {
@@ -447,6 +454,7 @@ async function salvar() {
 
     const data = await res.json();
     sha = data.content.sha;
+    localStorage.setItem('arceus_tarefas', JSON.stringify(tarefas));
     mostrarStatus('Salvo com sucesso!', 'success');
   } catch (err) {
     mostrarStatus('Erro ao salvar: ' + err.message, 'error');
@@ -457,6 +465,7 @@ async function salvar() {
 
 function toggle(num) {
   tarefas[num] = !tarefas[num];
+  localStorage.setItem('arceus_tarefas', JSON.stringify(tarefas));
   renderizar();
   salvar();
 }
@@ -527,6 +536,9 @@ function renderizar() {
   document.getElementById('pctCount').textContent = total ? Math.round(done / total * 100) + '%' : '0%';
 }
 
+function recarregar() {
+  carregar();
+}
 function forcarSalvamento() {
   salvar();
 }
